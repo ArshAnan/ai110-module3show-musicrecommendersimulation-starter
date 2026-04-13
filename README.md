@@ -128,23 +128,33 @@ You can add more tests in `tests/test_recommender.py`.
 
 ## Experiments You Tried
 
-Use this section to document the experiments you ran. For example:
+### Five profiles tested (`python -m src.main`)
 
-- What happened when you changed the weight on genre from 2.0 to 0.5
-- What happened when you added tempo or valence to the score
-- How did your system behave for different types of users
+| Profile | Top result | Key observation |
+|---|---|---|
+| Chill Lofi Listener | Midnight Coding (5.45) | All 3 lofi songs in top 3 — intuitive |
+| High-Energy Pop Fan | Sunrise City (4.95) | Gym Hero ranks #2 despite "intense" mood because genre match (2.0) > mood mismatch |
+| Intense Rock Head | Storm Runner (4.97) | #2 is an electronic song — rock fan still gets a non-rock result |
+| ADVERSARIAL: High Energy + Sad Folk | Hollow Bones (4.51) | Genre+mood labels (3.0 pts) override terrible energy fit (0.57 pts) |
+| ADVERSARIAL: Metal (not in catalog) | Bass Ritual (2.94) | System degrades gracefully — falls back to mood and energy |
+
+### Weight-shift experiment (`python -m src.main --experiment`)
+
+Changed `genre: 2.0 → 1.0` and `energy: 1.5 → 3.0`, leaving other weights unchanged.
+
+- Top-1 result was unchanged for all three standard profiles — the "best" song still won.
+- The gap between rank 1 and rank 2 shrank significantly. For the pop fan, Gym Hero and Rooftop Lights tied at ~4.23 (vs. a 1-point gap before).
+- Lofi profile rankings were completely unchanged — lofi songs are also low-energy, so both signals point to the same songs regardless of weight.
+- **Conclusion**: doubling energy weight diversifies ranks 2–5 but does not change the top pick. The original weights produce more predictable, genre-dominant results.
 
 ---
 
 ## Limitations and Risks
 
-Summarize some limitations of your recommender.
-
-Examples:
-
-- It only works on a tiny catalog
-- It does not understand lyrics or language
-- It might over favor one genre or mood
+- **Genre creates a filter bubble**: the 2.0-point genre bonus can overpower a severe energy mismatch (see adversarial test — a soft folk song beat high-energy alternatives for a user who explicitly wanted high energy).
+- **Mood is binary**: "relaxed" and "chill" are treated as completely different with no partial credit; a spectrum-based mood distance table would fix this.
+- **18-song catalog is too small**: genres with only one song (classical, latin, folk) will almost always appear in results for matching users regardless of how wrong the other features are.
+- **No diversity mechanism**: the system always returns the closest matches; it will never surface a surprising-but-good song.
 
 You will go deeper on this in your model card.
 
