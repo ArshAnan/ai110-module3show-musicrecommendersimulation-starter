@@ -1,19 +1,16 @@
 """
-Command line runner for the Music Recommender Simulation.
+Command-line runner for the Music Recommender Simulation.
 
-This file helps you quickly run and test your recommender.
-
-You will implement the functions in recommender.py:
-- load_songs
-- score_song
-- recommend_songs
+Run with:
+    python -m src.main
 """
 
-from recommender import load_songs, recommend_songs
+from src.recommender import load_songs, recommend_songs
 
 
 def main() -> None:
-    songs = load_songs("data/songs.csv") 
+    songs = load_songs("data/songs.csv")
+    print(f"Loaded {len(songs)} songs.\n")
 
     # Taste profile: a late-night lofi listener who values chill, acoustic, low-energy tracks.
     # favorite_genre / favorite_mood are categorical matches (exact string comparison).
@@ -27,15 +24,22 @@ def main() -> None:
         "likes_acoustic": True,
     }
 
+    print("User profile:")
+    for key, value in user_prefs.items():
+        print(f"  {key}: {value}")
+    print()
+
     recommendations = recommend_songs(user_prefs, songs, k=5)
 
-    print("\nTop recommendations:\n")
-    for rec in recommendations:
-        # You decide the structure of each returned item.
-        # A common pattern is: (song, score, explanation)
-        song, score, explanation = rec
-        print(f"{song['title']} - Score: {score:.2f}")
-        print(f"Because: {explanation}")
+    print(f"Top {len(recommendations)} recommendations:\n")
+    print(f"{'Rank':<5} {'Title':<25} {'Artist':<22} {'Score':>5}")
+    print("-" * 65)
+
+    for rank, (song, score, explanation) in enumerate(recommendations, start=1):
+        print(f"{rank:<5} {song['title']:<25} {song['artist']:<22} {score:>5.2f}")
+        # Print each reason on its own indented line
+        for reason in explanation.split(" | "):
+            print(f"       → {reason}")
         print()
 
 
