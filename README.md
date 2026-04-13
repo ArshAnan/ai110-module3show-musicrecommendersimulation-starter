@@ -11,23 +11,49 @@ Your goal is to:
 - Evaluate what your system gets right and wrong
 - Reflect on how this mirrors real world AI recommenders
 
-Replace this paragraph with your own summary of what your version does.
+This version builds a content-based music recommender that scores songs from a 10-song catalog against a user's taste profile (genre, mood, energy preference, and acoustic preference). It ranks songs by a weighted similarity score and returns the top matches with a plain-language explanation of why each song was chosen.
 
 ---
 
 ## How The System Works
 
-Explain your design in plain language.
+Real-world music recommenders like Spotify combine two strategies. **Collaborative filtering** finds patterns across millions of users ("people who liked X also liked Y"), while **content-based filtering** compares the actual attributes of songs — tempo, energy, mood, genre — against a user's known preferences. At scale, Spotify layers deep learning on top of raw audio to detect sonic similarity beyond what any single label captures. This simulator focuses on the content-based approach: it scores every song numerically against a user profile and returns the best matches.
 
-Some prompts to answer:
+### Song features used
 
-- What features does each `Song` use in your system
-  - For example: genre, mood, energy, tempo
-- What information does your `UserProfile` store
-- How does your `Recommender` compute a score for each song
-- How do you choose which songs to recommend
+Each `Song` object stores these attributes:
 
-You can include a simple diagram or bullet list if helpful.
+- `genre` — categorical (pop, lofi, rock, ambient, etc.)
+- `mood` — categorical (happy, chill, intense, relaxed, moody, focused)
+- `energy` — float 0–1 (how driving/intense the track feels)
+- `valence` — float 0–1 (musical positivity/happiness)
+- `acousticness` — float 0–1 (acoustic vs. electronic character)
+- `danceability`, `tempo_bpm` — stored but used as secondary signals
+
+### UserProfile stores
+
+- `favorite_genre` — the genre to reward most
+- `favorite_mood` — the mood/vibe to reward
+- `target_energy` — ideal energy level (0–1)
+- `likes_acoustic` — boolean preference for acoustic sound
+
+### Scoring Rule (one song)
+
+For categorical features, a match adds a flat bonus. For numerical features, closeness is rewarded using `1 - |song_value - user_preference|` so a perfect match scores 1.0 and a complete mismatch scores 0.0:
+
+```
+score = 3.0 × (genre match)
+      + 2.0 × (mood match)
+      + 2.0 × (1 - |song.energy - user.target_energy|)
+      + 1.0 × (1 - |song.valence - 0.7|)   ← default positivity target
+      + 1.0 × (acoustic bonus if user.likes_acoustic)
+```
+
+Genre carries the highest weight (3 pts) because listeners tend to stay within genres most consistently. Mood is second (2 pts). Energy closeness matters more than valence (2 vs. 1 pt) because energy strongly predicts activity fit.
+
+### Ranking Rule (choosing what to show)
+
+Once every song has a score, the system sorts the full list in descending order and returns the top-k results. The Scoring Rule answers "how good is *this* song?"; the Ranking Rule answers "which songs do I actually show?" — two separate operations chained together.
 
 ---
 
