@@ -162,14 +162,26 @@ You will go deeper on this in your model card.
 
 ## Reflection
 
-Read and complete `model_card.md`:
+See the full model card: [**Model Card**](model_card.md)
 
-[**Model Card**](model_card.md)
+Building VibeFinder 1.0 made one thing concrete that had only been abstract before: a
+recommender does not understand music — it understands numbers. Every song in the catalog
+is a row of features (energy, valence, acousticness), and every recommendation is the
+result of subtracting one row from another and sorting the differences. The system has no
+idea what a song sounds like. What it does have is a set of weights that we chose, which
+decide how much each feature matters. Changing genre from 2.0 points to 1.0 points does
+not change the algorithm — it changes the *values* the algorithm enforces. That is a human
+decision dressed up as math.
 
-Write 1 to 2 paragraphs here about what you learned:
-
-- about how recommenders turn data into predictions
-- about where bias or unfairness could show up in systems like this
+The bias question turned out to be the most interesting part. The adversarial test — a user
+asking for "folk, sad, high-energy" — showed how unfair a label-matching system can be to
+users with unusual combinations of preferences. The system returned a quiet acoustic ballad
+as the top recommendation for someone who wanted high energy, purely because two text
+labels matched. If this were a real product, that user would stop trusting it immediately.
+More broadly: any system that scores on genre will systematically under-serve users whose
+genres are not well represented in the catalog. A metal fan using this app would always get
+worse recommendations than a lofi fan, not because the algorithm is broken, but because
+the data reflects whoever curated the catalog — and whoever that was did not include metal.
 
 
 ---

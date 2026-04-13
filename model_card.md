@@ -6,12 +6,34 @@
 
 ---
 
-## 2. Intended Use
+## 2. Goal / Task
 
-This system suggests up to 5 songs from an 18-song catalog based on a user's preferred
-genre, mood, energy level, valence (positivity), and whether they enjoy acoustic music.
-It is built for classroom exploration — not for real users. The goal is to understand how
-a content-based filtering algorithm works, where it succeeds, and where it fails.
+VibeFinder 1.0 tries to answer one question: **given what a listener says they like, which
+songs in the catalog are most likely to match their taste?** It does this by assigning a
+numeric score to every song and returning the highest-scoring ones.
+
+### Intended Use
+
+This system is designed for classroom exploration. It demonstrates how a content-based
+filtering algorithm works — how song attributes like genre, mood, and energy can be
+compared to a user profile to produce a ranked list of suggestions. Students and educators
+can use it to learn about scoring logic, weight design, and the trade-offs involved in
+building simple recommenders.
+
+### Non-Intended Use
+
+VibeFinder 1.0 should **not** be used as a real music recommendation product. Specifically:
+
+- **Do not use it for actual users who expect personalized results.** The catalog is 18 songs,
+  the user profile never learns from listening history, and the scoring weights were chosen
+  manually — not trained on real listener data.
+- **Do not use it to make claims about musical taste.** It has no understanding of audio
+  itself; it only matches text labels and numbers. Two folk songs can sound completely
+  different and still score identically.
+- **Do not use it where fairness or representation matters.** The catalog heavily
+  over-represents English-language streaming genres and has zero coverage of many global
+  music traditions. A user whose favorite genre is not in the catalog will always receive
+  worse results than a lofi fan.
 
 ---
 
@@ -159,18 +181,54 @@ This is a good example of where mathematical rules can diverge from human intuit
 
 ## 9. Personal Reflection
 
-The most surprising thing about building VibeFinder 1.0 was how much a single weight
-decision (genre = 2.0) shapes every output. The adversarial test — asking for "folk, sad,
-and high-energy" — exposed how easily a label-matching system can be fooled: the correct
-genre label overrode a catastrophically wrong energy fit. Real apps like Spotify have
-thousands of audio features extracted from raw audio, which means they can tell a soft
-acoustic folk track apart from a hard driving one even if both are labelled "folk." Our
-system cannot.
+### Biggest learning moment
 
-Building this also made the cold-start problem feel real. Every time we run the script, the
-user profile is the same static dictionary. There is no memory of what was played or skipped.
-A real recommender that remembered "user skipped the first three lofi songs" would
-immediately start diversifying — ours just re-ranks the same list every time. Human
-judgment still matters in deciding what features to measure, how to weight them, and what
-"good" even means for a given listener. The math only handles the ranking once those
-decisions are made.
+The adversarial test was the turning point. I designed a user who wanted "folk, sad, and
+high-energy (0.92)" — a deliberately conflicting profile — and the system confidently
+returned Hollow Bones as the top result. Hollow Bones is a soft, quiet acoustic track with
+energy 0.30. It is the opposite of high-energy. But it matched the genre and mood labels,
+so it won 4.51 points out of 5.5 while better-fitting energetic songs sat far below.
+
+That moment made something real: **the algorithm does not hear music, it reads labels.**
+It has no idea that "folk" can mean both a gentle acoustic ballad and a hard-driving fiddle
+reel. The system was not broken — it was doing exactly what the weights told it to do. The
+bug was in my assumption that genre labels carry more information than they actually do.
+
+### How AI tools helped — and where I had to double-check
+
+AI tools (Copilot and Claude) helped at every scaffolding step: generating initial CSV rows
+in the right format, explaining the difference between `sorted()` and `.sort()`, and
+suggesting the `1 - |difference|` formula for closeness scoring. That last one was
+particularly useful — without the prompt "how do I reward closeness rather than just higher
+values?", I might have written something like `score += song.energy` which rewards high
+energy unconditionally and would have broken the chill-listener profile.
+
+Where I had to slow down and verify: the AI-suggested scoring formula looked correct but I
+had to manually trace through two contrasting songs (Library Rain vs. Storm Runner) to
+confirm it produced the expected 5.42 vs. 1.27 output. AI tools are good at producing
+plausible code — they are not good at knowing whether that code reflects what you actually
+mean. Checking the math by hand on a known example was the only way to trust it.
+
+### What surprised me about simple algorithms "feeling" like recommendations
+
+What surprised me most is how believable the results look even though the logic is five
+arithmetic operations. Run `python -m src.main` and the terminal prints a ranked list with
+reasons — it genuinely looks like something a music app would show. The labels ("genre
+match", "energy fit") create an impression of understanding that the code does not have.
+
+This is worth taking seriously. A user reading "Midnight Coding recommended because: genre
+match, chill mood, energy fit" might assume the system listened to the song and judged its
+vibe. It did not. It compared three stored numbers and one string. The gap between
+"looks like intelligence" and "is intelligence" is much smaller than I expected when the
+output is formatted well — which is exactly why model cards and explanation text matter.
+
+### What I would try next
+
+If I kept developing this, the first change would be replacing exact mood matching with a
+mood similarity table. "Relaxed" and "chill" are not the same string, but they are close in
+meaning — a two-point penalty for treating them as completely different is too harsh. The
+second change would be adding one "surprise" slot to the top-5: always include one song
+that scores highly on energy and valence but does not match the genre, to push against the
+filter bubble. The third would be logging which songs a user skips, and using that to
+lower the weight of whichever feature those songs matched best — the simplest possible form
+of feedback learning that does not require a real database or user accounts.
